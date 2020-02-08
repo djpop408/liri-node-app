@@ -84,7 +84,7 @@ function spotifyThisSong(){
         .catch(function(err) {
             console.log(err);
         });
-    appendToLog(queryUrl);
+    appendToLog(query);
 };
 
 //movie-this command
