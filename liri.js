@@ -2,31 +2,33 @@ require("dotenv").config();
 
 const fs = require("fs");
 const axios = require("axios");
-const spotify = require("node-spotify-api");
+const Spotify = require("node-spotify-api");
 const moment = require("moment");
 const chalk = require("chalk");
 
 var keys = require("./keys.js");
-//var spotify = new Spotify(keys.spotify);
 
 var command = process.argv[2];
 var query = process.argv.slice(3).join("+");
 
 switch(command) {
     case "concert-this":
-      concertThis();
-      break;
+        concertThis();
+        break;
     case "spotify-this-song":
-      spotifyThisSong();
-      break;
+        spotifyThisSong();
+        break;
     case "movie-this":
-      movieThis();
-      break;
+        movieThis();
+        break;
     case "do-what-it-says":
-      doWhatItSays();
-      break;  
+        doWhatItSays();
+        break;
+    default:
+        console.log(chalk.redBright.inverse("Please enter one of the following commands: 'concert-this', 'spotify-this-song', 'movie-this', 'do-what-it-says' in order to continue"));
 }
 
+//concert-this command
 function concertThis(){
     var queryUrl = "https://rest.bandsintown.com/artists/" + query + "/events?app_id=codingbootcamp";
     // We then run the request with axios module on a URL with a JSON
@@ -49,30 +51,51 @@ function concertThis(){
         .catch(function(err) {
             console.log(err);
         });
+    appendToLog(queryUrl);
 };
 
+//spotify-this-song command
+function spotifyThisSong(){
+    if (!query) {
+        query = "The Sign";
+    };
+    var spotify = new Spotify(keys.spotify);
+    spotify
+        .search({ type: 'track', query: query })
+        .then(function(response) {
+
+            var tracksArray = response.tracks.items;
+            for (let i = 0; i < tracksArray.length; i++) {
+                var artistArray = tracksArray[i].artists
+                for (let j = 0; j < artistArray.length; j++) {
+                    var artistName = JSON.stringify(artistArray[j].name);
+                    console.log('Artist:' + chalk.cyan(artistName));
+                }
+                var trackName = tracksArray[i].name;
+                var trackLink = tracksArray[i].href;
+                var trackAlbum = tracksArray[i].album.name;
+
+                console.log('Song:', chalk.magentaBright(trackName));
+                console.log('Album:', chalk.magentaBright(trackAlbum));
+                console.log('Link:', chalk.magenta(trackLink));
+                console.log(chalk.blackBright.dim("----------------------------"));
+            }
+        })
+        .catch(function(err) {
+            console.log(err);
+        });
+    appendToLog(queryUrl);
+};
+
+//movie-this command
 function movieThis(){
+    if (!query) {
+        query = "Mr. Nobody";
+    };
     var queryUrl = "http://www.omdbapi.com/?t=" + query + "&y=&plot=short&apikey=trilogy";
     axios
     .get(queryUrl)
     .then(function(response) {
-        // var events = response.data;
-        // events.forEach(function(event) {
-        //     var venue = event.venue.name;
-        //     var location = event.venue.city + " " + event.venue.country;
-        //     var date = moment(event.datetime).format("L");
-        //     console.log("Venue: " + chalk.yellow(venue) + "\nLocation: " + chalk.greenBright(location) + "\nDate: " + chalk.green(date));
-        //     console.log(chalk.blackBright.dim("----------------------------"));
-        // });
-
-        // * Title of the movie.
-        // * Year the movie came out.
-        // * IMDB Rating of the movie.
-        // * Rotten Tomatoes Rating of the movie.
-        // * Country where the movie was produced.
-        // * Language of the movie.
-        // * Plot of the movie.
-        // * Actors in the movie.
         var title = response.data.Title;
         var year = response.data.Year;
         var imdbRating = response.data.imdbRating;
@@ -97,27 +120,57 @@ function movieThis(){
     .catch(function(err) {
         console.log(err);
     });
+    appendToLog(queryUrl);
 };
 
-// var nodeArgs = process.argv;
+//do-what-it-says command
+function doWhatItSays(){
+    fs.readFile("random.txt", "utf8", function(error, data) {
+        if (error) {
+          return console.log(error);
+        }
+      
+        // We will then print the contents of data
+        console.log(data);
+      
+        // Then split it by commas (to make it more readable)
+        var dataArr = data.split(",");
+      
+        // We will then re-display the content as an array for later use.
+        console.log(dataArr[0]);
+        console.log(dataArr[1]);
 
-// var artist = "";
+        command = dataArr[0];
+        query = dataArr[1];
 
-// Loop through all the words in the node argument
-// And do a little for-loop magic to handle the inclusion of "+"s
-// for (var i = 2; i < nodeArgs.length; i++) {
-//     if (i > 2 && i < nodeArgs.length) {
-//         artist = artist + "+" + nodeArgs[i];
-//     } else {
-//         artist += nodeArgs[i];
-//     }
-// }
+        switch(command) {
+            case "concert-this":
+                concertThis();
+                break;
+            case "spotify-this-song":
+                spotifyThisSong();
+                break;
+            case "movie-this":
+                movieThis();
+                break;
+            default:
+                console.log("Error");
+        }
+      
+      });
+      
+};
 
-// We then run the request with axios module on a URL with a JSON
-// axios.get("https://rest.bandsintown.com/artists/" + artist + "/events?app_id=codingbootcamp").then(
-//   function(response) {
-//     // Then we print out the imdbRating
-//     // console.log("The movie's rating is: " + response.data.imdbRating);
-//     console.log(response.data);
-//   }
-// );
+//Appending all queries to log
+function appendToLog(data){
+    fs.appendFile("log.txt", data + "\n", function(err) {
+        // If an error was experienced we will log it.
+        if (err) {
+          console.log(err);
+        }
+        // If no error is experienced, we'll log the phrase "Content Added" to our node console.
+        else {
+          console.log("Content Added!");
+        }
+      });
+};
